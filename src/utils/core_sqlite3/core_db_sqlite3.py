@@ -1,10 +1,24 @@
 import sqlite3
+import logging
 
 class Database:
     def __init__(self, db_name):
         self.db_name = db_name
         self.conn = None
         self.cursor = None
+
+        # Настройка логгера
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+        file_handler = logging.FileHandler('database.log')
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
 
     # методы enter и exit для менеджера контектса with
     def __enter__(self):
@@ -18,16 +32,17 @@ class Database:
         try:
             self.conn = sqlite3.connect(self.db_name)
             self.cursor = self.conn.cursor()
-            print("Подключение к базе данных произошло удачно")
+            self.logger.info("Подключение к базе данных произошло удачно")
         except sqlite3.Error as e:
-            print(f"Произошла ошибка при подключение к БД: {e}")
+            self.logger.error(f"Произошла ошибка при подключение к БД: {e}")
 
     def disconnect(self):
         if self.conn:
             self.conn.close()
-            print("Подключение к базе данных завершено")
+            self.logger.info("Подключение к базе данных завершено")
 
     def execute_query(self, query, params=None):
+        self.logger.info(f"Запрос: {query}, параметры: {params}")
         try:
             if params is not None:
                 self.cursor.execute(query, params)
@@ -35,7 +50,7 @@ class Database:
                 self.cursor.execute(query)
             return True
         except sqlite3.Error as e:
-            print(f"Ошибка в запросе к базе данных: {e}")
+            self.logger.error(f"Ошибка в запросе к базе данных: {e}")
             return False
 
     def commit(self):
